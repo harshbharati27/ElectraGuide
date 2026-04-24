@@ -58,6 +58,51 @@
             border-radius: 20px; backdrop-filter: blur(8px);
         }
 
+        /* Fix My Problem Section */
+        .problem-section {
+            width: 100%; max-width: 1100px;
+            padding: 1.25rem 1rem; text-align: center;
+        }
+        .problem-section h2 {
+            margin: 0 0 1rem; font-size: 1.3rem; color: var(--accent);
+        }
+        .problem-cards {
+            display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;
+        }
+        .problem-card {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            border-radius: 16px; padding: 1rem; min-width: 130px; flex: 1; max-width: 180px;
+            cursor: pointer; transition: all 0.25s; text-align: center;
+        }
+        .problem-card:hover { border-color: var(--accent); background: rgba(249,115,22,0.08); transform: translateY(-3px); }
+        .problem-card.active { border-color: var(--accent); background: rgba(249,115,22,0.12); box-shadow: 0 0 20px var(--accent-glow); }
+        .problem-card .p-icon { font-size: 2rem; display: block; margin-bottom: 0.4rem; }
+        .problem-card .p-label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+        .problem-card.active .p-label { color: white; }
+
+        .solution-box {
+            max-width: 1100px; width: 100%; display: none;
+            background: rgba(17,24,39,0.8); border: 1px solid var(--accent); border-radius: 20px;
+            padding: 1.5rem 2rem; text-align: left; line-height: 1.7;
+            animation: fadeIn 0.3s ease; margin: 0 auto;
+        }
+        .solution-box.show { display: block; }
+        .solution-box h3 { margin-top: 0; color: var(--accent); font-size: 1.3rem; }
+        .solution-box .step { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; align-items: flex-start; }
+        .solution-box .step-num {
+            background: var(--accent); color: white; width: 28px; height: 28px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.85rem; flex-shrink: 0;
+        }
+        .solution-box .step-text { color: #d1d5db; }
+        .solution-box a { color: #60a5fa; text-decoration: underline; }
+        .solution-box .action-btn {
+            display: inline-block; margin-top: 1rem; background: var(--accent); color: white;
+            text-decoration: none; padding: 0.6rem 1.5rem; border-radius: 12px; font-weight: 600;
+            transition: background 0.2s;
+        }
+        .solution-box .action-btn:hover { background: #ea580c; }
+
         /* Content wrapper: chat + sidebar */
         .content-wrapper {
             width: 100%; max-width: 1100px;
@@ -273,6 +318,13 @@
             .icon-btn { width: 42px; height: 42px; font-size: 1.1rem; }
 
             .ticker-bar { font-size: 0.8rem; padding: 0.5rem; }
+            .problem-section { padding: 0.75rem; }
+            .problem-section h2 { font-size: 1.1rem; }
+            .problem-cards { gap: 0.5rem; }
+            .problem-card { padding: 0.7rem; min-width: 100px; }
+            .problem-card .p-icon { font-size: 1.5rem; }
+            .problem-card .p-label { font-size: 0.75rem; }
+            .solution-box { padding: 1rem; }
         }
     </style>
 </head>
@@ -301,6 +353,34 @@
 
 <!-- Countdown -->
 <div class="countdown-bar" id="countdownBar">⏳ Loading countdown...</div>
+
+<!-- Fix My Problem -->
+<div class="problem-section">
+    <h2>🚨 What's Your Situation?</h2>
+    <div class="problem-cards">
+        <div class="problem-card" onclick="showSolution('firsttime')">
+            <span class="p-icon">🌟</span>
+            <span class="p-label">First Time Voter</span>
+        </div>
+        <div class="problem-card" onclick="showSolution('lostid')">
+            <span class="p-icon">💳</span>
+            <span class="p-label">Lost Voter ID</span>
+        </div>
+        <div class="problem-card" onclick="showSolution('missed')">
+            <span class="p-icon">⏰</span>
+            <span class="p-label">Missed Registration</span>
+        </div>
+        <div class="problem-card" onclick="showSolution('booth')">
+            <span class="p-icon">📍</span>
+            <span class="p-label">Find My Booth</span>
+        </div>
+        <div class="problem-card" onclick="showSolution('docs')">
+            <span class="p-icon">📄</span>
+            <span class="p-label">What Documents?</span>
+        </div>
+    </div>
+</div>
+<div class="solution-box" id="solutionBox"></div>
 
 <!-- Content: Chat + Sidebar -->
 <div class="content-wrapper">
@@ -698,6 +778,95 @@
 
             setTimeout(() => piece.remove(), (fallDuration + 0.5) * 1000);
         }
+    }
+
+    // ===================== FIX MY PROBLEM =====================
+    const solutions = {
+        firsttime: {
+            title: '🌟 First Time Voter — Your Complete Guide',
+            steps: [
+                'Confirm you are <strong>18+ years old</strong> on the qualifying date (Jan 1 of the election year).',
+                'Visit <a href="https://voters.eci.gov.in" target="_blank">voters.eci.gov.in</a> and fill <strong>Form 6</strong> for new voter registration.',
+                'Upload <strong>proof of age</strong> (birth certificate, school marksheet) and <strong>proof of address</strong> (Aadhaar, utility bill).',
+                'Track your application status online. You\'ll receive your <strong>EPIC card</strong> (Voter ID) within 30 days.',
+                'Before election day, <strong>check the voter list</strong> at <a href="https://electoralsearch.eci.gov.in" target="_blank">electoralsearch.eci.gov.in</a> to confirm your name.',
+                'On voting day, carry your EPIC or Aadhaar to your assigned <strong>polling booth</strong> and cast your vote on the EVM!'
+            ],
+            actionLabel: '👉 Register Now',
+            actionUrl: 'https://voters.eci.gov.in'
+        },
+        lostid: {
+            title: '💳 Lost Voter ID — Don\'t Panic!',
+            steps: [
+                '<strong>Good news:</strong> You can still vote even without your EPIC card, as long as your name is on the Electoral Roll.',
+                'Carry any <strong>alternative photo ID</strong>: Aadhaar Card, PAN Card, Driving License, Passport, or MGNREGA Job Card.',
+                'To get a <strong>duplicate Voter ID</strong>, visit <a href="https://voters.eci.gov.in" target="_blank">voters.eci.gov.in</a> and fill <strong>Form 002</strong>.',
+                'You can also visit your nearest <strong>Electoral Registration Officer (ERO)</strong> or call <strong>1950</strong> for assistance.',
+                'Your duplicate EPIC card will be issued within <strong>15-30 days</strong> after verification.'
+            ],
+            actionLabel: '👉 Apply for Duplicate',
+            actionUrl: 'https://voters.eci.gov.in'
+        },
+        missed: {
+            title: '⏰ Missed Registration — Here\'s What To Do',
+            steps: [
+                '<strong>Unfortunately</strong>, if your name is not on the Electoral Roll, you cannot vote in this election.',
+                'But <strong>register NOW</strong> so you\'re ready for the next one! Visit <a href="https://voters.eci.gov.in" target="_blank">voters.eci.gov.in</a> → Form 6.',
+                'Registration typically opens <strong>months before an election</strong>. Set a reminder!',
+                'Download the <strong>Voter Helpline App</strong> on your phone to get notified about registration deadlines.',
+                'Call <strong>1950</strong> (Voter Helpline) for personalized assistance in your area.'
+            ],
+            actionLabel: '👉 Register for Next Election',
+            actionUrl: 'https://voters.eci.gov.in'
+        },
+        booth: {
+            title: '📍 Find Your Polling Booth',
+            steps: [
+                'Visit <a href="https://electoralsearch.eci.gov.in" target="_blank">electoralsearch.eci.gov.in</a> and enter your <strong>EPIC number</strong> or personal details.',
+                'Your assigned <strong>polling station name and address</strong> will be displayed instantly.',
+                'Alternatively, download the <strong>Voter Helpline App</strong> (Android/iOS) and search there.',
+                'Polling booths are usually within <strong>2 km of your registered address</strong>.',
+                'On election day, booths open at <strong>7:00 AM</strong> and close at <strong>6:00 PM</strong>. Go early to avoid queues!'
+            ],
+            actionLabel: '👉 Search Your Booth',
+            actionUrl: 'https://electoralsearch.eci.gov.in'
+        },
+        docs: {
+            title: '📄 Documents Accepted at the Polling Booth',
+            steps: [
+                '<strong>Voter ID Card (EPIC)</strong> — the primary document.',
+                '<strong>Aadhaar Card</strong> — most widely accepted alternative.',
+                '<strong>PAN Card, Driving License, or Passport</strong> — all valid photo IDs.',
+                '<strong>MGNREGA Job Card, Bank/Post Office Passbook with Photo</strong> — also accepted.',
+                'You need <strong>at least ONE valid photo ID</strong> to vote. No ID = no vote, so carry it!'
+            ],
+            actionLabel: '👉 Check Your Registration',
+            actionUrl: 'https://electoralsearch.eci.gov.in'
+        }
+    };
+
+    function showSolution(key) {
+        const sol = solutions[key];
+        const box = document.getElementById('solutionBox');
+        
+        // Toggle active card
+        document.querySelectorAll('.problem-card').forEach(c => c.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        let stepsHtml = sol.steps.map((s, i) => `
+            <div class="step">
+                <div class="step-num">${i + 1}</div>
+                <div class="step-text">${s}</div>
+            </div>
+        `).join('');
+
+        box.innerHTML = `
+            <h3>${sol.title}</h3>
+            ${stepsHtml}
+            <a class="action-btn" href="${sol.actionUrl}" target="_blank">${sol.actionLabel}</a>
+        `;
+        box.classList.add('show');
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
 </script>
