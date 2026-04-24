@@ -21,6 +21,11 @@ ElectraGuide is an intelligent, multilingual election process assistant designed
 - **English**, **हिन्दी (Hindi)**, **বাংলা (Bengali)**, **मराठी (Marathi)**
 - Entire UI — buttons, labels, suggestions, quiz — dynamically translates on language switch.
 
+### 🚨 "What's Your Situation?" (Problem Solver)
+- 5 interactive cards targeting the most common voter issues (First time voter, lost ID, missed registration, find booth, documents).
+- Click any card to reveal a step-by-step actionable guide with direct links to the relevant official portals.
+- Transforms the app from a passive info-tool into an active problem-solving assistant.
+
 ### 🧠 Election Quiz
 - 5 randomized multiple-choice questions per round.
 - Instant correct/wrong feedback with color highlights.
