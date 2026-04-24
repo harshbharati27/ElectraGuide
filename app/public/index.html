@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ElectraGuide India</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030712;
+            --surface: rgba(17, 24, 39, 0.7);
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --accent: #f97316;
+            --accent-glow: rgba(249, 115, 22, 0.4);
+            --border: rgba(255, 255, 255, 0.1);
+            --green: #10b981;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(249, 115, 22, 0.1), transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.1), transparent 40%);
+            color: var(--text-main);
+            margin: 0; padding: 0;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .top-bar {
+            width: 100%; max-width: 1100px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1.5rem 1rem 0 1rem; flex-wrap: wrap; gap: 0.75rem;
+        }
+        .top-bar h1 {
+            font-size: 1.8rem; margin: 0;
+            background: linear-gradient(135deg, #f97316, #10b981);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
+        }
+        .top-bar-right { display: flex; gap: 0.5rem; align-items: center; }
+        select {
+            background: rgba(0,0,0,0.4); color: white; border: 1px solid var(--border);
+            padding: 0.5rem 1rem; border-radius: 20px; font-family: inherit; font-size: 0.95rem; cursor: pointer;
+        }
+        .quiz-btn {
+            background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none;
+            padding: 0.5rem 1.2rem; border-radius: 20px; font-family: inherit; font-size: 0.95rem;
+            cursor: pointer; font-weight: 600; transition: all 0.2s;
+        }
+        .quiz-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(139,92,246,0.5); }
+
+        .main {
+            flex: 1; display: flex; flex-direction: column; padding: 1rem 1.25rem; min-width: 0;
+            background: rgba(17, 24, 39, 0.5); border: 1px solid var(--border);
+            border-radius: 20px; backdrop-filter: blur(8px);
+        }
+
+        /* Content wrapper: chat + sidebar */
+        .content-wrapper {
+            width: 100%; max-width: 1100px;
+            display: flex; gap: 1rem; padding: 0.5rem 1rem; flex: 1;
+        }
+
+        /* Chat */
+        .chat-area {
+            flex: 1; overflow-y: auto; padding: 0.5rem 0;
+            display: flex; flex-direction: column; gap: 1rem;
+            min-height: 250px; max-height: 50vh;
+        }
+        .chat-area::-webkit-scrollbar { width: 6px; }
+        .chat-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 6px; }
+
+        .msg {
+            max-width: 80%; padding: 1rem 1.25rem; border-radius: 18px;
+            line-height: 1.6; font-size: 1.05rem; white-space: pre-line;
+            animation: fadeIn 0.3s ease; position: relative;
+        }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .msg.bot {
+            align-self: flex-start; background: rgba(31,41,55,0.8);
+            border: 1px solid var(--border); border-bottom-left-radius: 4px;
+        }
+        .msg.user {
+            align-self: flex-end; background: var(--accent);
+            border-bottom-right-radius: 4px; color: white;
+        }
+
+        .msg-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+        .msg-action-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text-muted); border-radius: 20px; padding: 0.3rem 0.7rem;
+            font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+        }
+        .msg-action-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+
+        /* Suggestions */
+        .suggestions { display: flex; flex-wrap: wrap; gap: 0.6rem; padding: 0.75rem 0; }
+        .chip {
+            background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+            color: var(--text-muted); padding: 0.6rem 1.2rem; border-radius: 50px;
+            cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: all 0.2s;
+        }
+        .chip:hover { border-color: var(--accent); color: white; background: rgba(249,115,22,0.1); transform: scale(1.03); }
+
+        /* Input */
+        .input-area {
+            display: flex; gap: 0.5rem; padding: 0.75rem 0; border-top: 1px solid var(--border); align-items: center;
+        }
+        .input-area input {
+            flex: 1; background: rgba(17,24,39,0.8); border: 1px solid var(--border);
+            color: white; padding: 1rem 1.25rem; border-radius: 16px;
+            font-family: inherit; font-size: 1.05rem; outline: none; transition: border 0.2s;
+        }
+        .input-area input:focus { border-color: var(--accent); }
+        .input-area input::placeholder { color: #6b7280; }
+
+        .icon-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: none;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+        }
+        .mic-btn { background: rgba(255,255,255,0.1); color: var(--text-muted); }
+        .mic-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+        .mic-btn.recording { background: #ef4444; color: white; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 50% { box-shadow: 0 0 0 12px rgba(239,68,68,0); } }
+
+        .send-btn {
+            background: var(--accent); color: white;
+            width: 50px; height: 50px; border-radius: 50%; border: none;
+            font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .send-btn:hover { background: #ea580c; }
+        .send-btn:active { transform: scale(0.95); }
+
+        /* Typing */
+        .typing { display: flex; gap: 5px; padding: 0.8rem 1.2rem; align-self: flex-start; }
+        .typing span {
+            width: 8px; height: 8px; background: var(--text-muted); border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+        /* Quiz Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #111827; border: 1px solid var(--border); border-radius: 24px;
+            padding: 2.5rem; max-width: 550px; width: 90%; max-height: 85vh; overflow-y: auto;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8); animation: fadeIn 0.3s ease;
+        }
+        .modal h2 { margin-top: 0; color: #a78bfa; text-align: center; }
+        .modal-close {
+            float: right; background: none; border: none; color: var(--text-muted);
+            font-size: 1.5rem; cursor: pointer;
+        }
+        .quiz-question { font-size: 1.15rem; margin: 1.5rem 0 1rem; font-weight: 600; }
+        .quiz-option {
+            display: block; width: 100%; text-align: left; padding: 0.9rem 1.2rem;
+            margin-bottom: 0.6rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: white; border-radius: 12px; cursor: pointer; font-family: inherit;
+            font-size: 1rem; transition: all 0.2s;
+        }
+        .quiz-option:hover { border-color: #8b5cf6; background: rgba(139,92,246,0.1); }
+        .quiz-option.correct { background: rgba(16,185,129,0.2); border-color: var(--green); color: var(--green); }
+        .quiz-option.wrong { background: rgba(239,68,68,0.2); border-color: #ef4444; color: #ef4444; }
+        .quiz-option:disabled { cursor: default; opacity: 0.7; }
+
+        .quiz-score {
+            text-align: center; padding: 2rem 0; font-size: 1.4rem;
+        }
+        .quiz-score .score-num { font-size: 3rem; font-weight: 800; color: var(--green); }
+        .quiz-restart {
+            display: block; margin: 1rem auto 0; background: #8b5cf6; color: white;
+            border: none; padding: 0.8rem 2rem; border-radius: 12px; font-size: 1rem;
+            font-weight: 600; cursor: pointer;
+        }
+        .quiz-progress { text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
+
+        /* Stats Banner */
+        .stats-banner {
+            width: 100%; max-width: 1100px; display: flex; justify-content: space-around;
+            padding: 1rem; margin-top: 1rem; flex-wrap: wrap; gap: 0.5rem;
+        }
+        .stat-item { text-align: center; flex: 1; min-width: 120px; }
+        .stat-num {
+            font-size: 2rem; font-weight: 800;
+            background: linear-gradient(135deg, #f97316, #10b981);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent; color: transparent;
+        }
+        .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+        /* Countdown */
+        .countdown-bar {
+            width: 100%; max-width: 1100px;
+            background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3);
+            border-radius: 16px; padding: 0.8rem 1.5rem; text-align: center;
+            font-size: 0.95rem; color: #c4b5fd;
+        }
+        .countdown-bar strong { color: #a78bfa; font-size: 1.1rem; }
+
+        /* Did You Know Ticker */
+        .ticker-bar {
+            width: 100%; max-width: 900px; overflow: hidden;
+            background: rgba(249,115,22,0.08); border-top: 1px solid rgba(249,115,22,0.2);
+            padding: 0.7rem 1rem; font-size: 0.9rem; color: #fdba74;
+            white-space: nowrap; position: relative; margin-top: auto;
+        }
+        .ticker-content {
+            display: inline-block; animation: ticker 18s linear infinite;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Confetti */
+        .confetti-piece {
+            position: fixed; z-index: 999; pointer-events: none;
+            width: 10px; height: 10px; opacity: 1;
+        }
+
+        /* Quick Links Sidebar */
+        .sidebar {
+            width: 200px; flex-shrink: 0;
+            display: flex; flex-direction: column; gap: 0.6rem;
+            padding-top: 0.5rem;
+        }
+        .qlink {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+            color: #93c5fd; text-decoration: none; padding: 0.6rem 1rem;
+            border-radius: 14px; font-size: 0.85rem; font-weight: 600;
+            transition: all 0.2s; white-space: nowrap;
+        }
+        .qlink:hover { background: rgba(59,130,246,0.15); border-color: #3b82f6; color: #60a5fa; transform: translateY(-2px); }
+        .qlink-icon { font-size: 1.1rem; }
+
+        /* Ticker */
+        .ticker-bar {
+            width: 100%; max-width: 1100px; overflow: hidden;
+            background: rgba(249,115,22,0.08); border-top: 1px solid rgba(249,115,22,0.2);
+            padding: 0.7rem 1rem; font-size: 0.9rem; color: #fdba74;
+            white-space: nowrap; position: relative; margin-top: auto;
+        }
+
+        /* ===================== MOBILE RESPONSIVE ===================== */
+        @media (max-width: 768px) {
+            .top-bar h1 { font-size: 1.4rem; }
+            .stats-banner { gap: 0.25rem; padding: 0.75rem 0.5rem; }
+            .stat-num { font-size: 1.3rem; }
+            .stat-label { font-size: 0.7rem; }
+            .countdown-bar { font-size: 0.8rem; padding: 0.6rem 0.8rem; border-radius: 10px; margin: 0 0.5rem; }
+            .countdown-bar strong { font-size: 0.9rem; }
+
+            .content-wrapper { flex-direction: column; padding: 0.5rem; }
+            .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; padding-top: 0; order: 2; }
+            .qlink { padding: 0.5rem 0.8rem; font-size: 0.78rem; }
+
+            .main { order: 1; }
+            .chat-area { max-height: 40vh; min-height: 200px; }
+            .msg { max-width: 90%; font-size: 0.95rem; padding: 0.8rem 1rem; }
+            .chip { padding: 0.5rem 0.9rem; font-size: 0.8rem; }
+            .input-area input { padding: 0.8rem; font-size: 0.95rem; }
+            .icon-btn { width: 42px; height: 42px; font-size: 1.1rem; }
+
+            .ticker-bar { font-size: 0.8rem; padding: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <h1>ElectraGuide</h1>
+    <div class="top-bar-right">
+        <button class="quiz-btn" onclick="openQuiz()" id="quizBtnText">🧠 Quiz</button>
+        <select id="langSelect" onchange="changeLang()">
+            <option value="en">English</option>
+            <option value="hi">हिन्दी</option>
+            <option value="bn">বাংলা</option>
+            <option value="mr">मराठी</option>
+        </select>
+    </div>
+</div>
+
+<!-- Stats Banner -->
+<div class="stats-banner">
+    <div class="stat-item"><div class="stat-num" data-target="968000000">0</div><div class="stat-label">Registered Voters</div></div>
+    <div class="stat-item"><div class="stat-num" data-target="543">0</div><div class="stat-label">Lok Sabha Seats</div></div>
+    <div class="stat-item"><div class="stat-num" data-target="1035918">0</div><div class="stat-label">Polling Stations</div></div>
+    <div class="stat-item"><div class="stat-num" data-target="28">0</div><div class="stat-label">States</div></div>
+</div>
+
+<!-- Countdown -->
+<div class="countdown-bar" id="countdownBar">⏳ Loading countdown...</div>
+
+<!-- Content: Chat + Sidebar -->
+<div class="content-wrapper">
+    <div class="main">
+        <div class="chat-area" id="chatArea">
+            <div class="msg bot" id="welcomeMsg">
+                Hello! 👋 I'm <strong>ElectraGuide</strong>, your election process assistant for India. Ask me anything about voting, registration, or elections!
+                <div class="msg-actions">
+                    <button class="msg-action-btn" onclick="speakText(this.closest('.msg'))">🔊 Listen</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="suggestions" id="suggestions">
+            <div class="chip" onclick="askChip(this)">How to vote?</div>
+            <div class="chip" onclick="askChip(this)">Election steps</div>
+            <div class="chip" onclick="askChip(this)">What is NOTA?</div>
+            <div class="chip" onclick="askChip(this)">Register as voter</div>
+            <div class="chip" onclick="askChip(this)">Lost Voter ID</div>
+            <div class="chip" onclick="askChip(this)">First time voter</div>
+            <div class="chip" onclick="askChip(this)">Required documents</div>
+        </div>
+
+        <form class="input-area" id="chatForm" onsubmit="handleSubmit(event)">
+            <button type="button" class="icon-btn mic-btn" id="micBtn" onclick="toggleMic()" title="Voice input">🎙️</button>
+            <input type="text" id="userInput" placeholder="Ask me about elections..." autocomplete="off">
+            <button type="submit" class="icon-btn send-btn" title="Send">➤</button>
+        </form>
+    </div>
+
+    <!-- Sidebar: Quick Links -->
+    <div class="sidebar">
+        <a class="qlink" href="https://voters.eci.gov.in" target="_blank"><span class="qlink-icon">📝</span> NVSP Portal</a>
+        <a class="qlink" href="https://eci.gov.in" target="_blank"><span class="qlink-icon">🏛️</span> ECI Official</a>
+        <a class="qlink" href="https://electoralsearch.eci.gov.in" target="_blank"><span class="qlink-icon">🔍</span> Find Booth</a>
+        <a class="qlink" href="https://play.google.com/store/apps/details?id=com.eci.citizen" target="_blank"><span class="qlink-icon">📱</span> Helpline App</a>
+        <a class="qlink" href="tel:1950"><span class="qlink-icon">📞</span> Dial: 1950</a>
+    </div>
+</div>
+
+<!-- Quiz Modal -->
+<div class="modal-overlay" id="quizModal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeQuiz()">&times;</button>
+        <h2 id="quizTitle">🧠 Election Quiz</h2>
+        <div id="quizContent"></div>
+    </div>
+</div>
+
+<script>
+    // ===================== LANGUAGE CONFIG =====================
+    const chipText = {
+        en: ["How to vote?", "Election steps", "What is NOTA?", "Register as voter", "Lost Voter ID", "First time voter", "Required documents"],
+        hi: ["वोट कैसे डालें?", "चुनाव प्रक्रिया", "नोटा क्या है?", "मतदाता पंजीकरण", "वोटर आईडी खो गया", "पहली बार मतदान", "आवश्यक दस्तावेज"],
+        bn: ["কিভাবে ভোট দেবেন?", "নির্বাচন প্রক্রিয়া", "নোটা কী?", "ভোটার নিবন্ধন", "ভোটার আইডি হারানো", "প্রথমবার ভোট", "প্রয়োজনীয় নথি"],
+        mr: ["मतदान कसे करावे?", "निवडणूक प्रक्रिया", "नोटा म्हणजे काय?", "मतदार नोंदणी", "व्होटर आयडी हरवला", "पहिल्यांदा मतदान", "आवश्यक कागदपत्रे"]
+    };
+    const welcomeText = {
+        en: 'Hello! 👋 I\'m <strong>ElectraGuide</strong>, your election process assistant for India. Ask me anything about voting, registration, or elections!',
+        hi: 'नमस्ते! 👋 मैं <strong>ElectraGuide</strong> हूँ, भारत की चुनाव प्रक्रिया के लिए आपका सहायक। मुझसे कुछ भी पूछें!',
+        bn: 'নমস্কার! 👋 আমি <strong>ElectraGuide</strong>, ভারতের নির্বাচন প্রক্রিয়ার জন্য আপনার সহায়ক। যেকোনো প্রশ্ন করুন!',
+        mr: 'नमस्कार! 👋 मी <strong>ElectraGuide</strong>, भारतातील निवडणूक प्रक्रियेसाठी तुमचा सहायक. काहीही विचारा!'
+    };
+    const placeholderText = { en: "Ask me about elections...", hi: "चुनाव के बारे में पूछें...", bn: "নির্বাচন সম্পর্কে জিজ্ঞাসা করুন...", mr: "निवडणुकीबद्दल विचारा..." };
+    const quizTitles = { en: "🧠 Election Quiz", hi: "🧠 चुनाव क्विज़", bn: "🧠 নির্বাচন কুইজ", mr: "🧠 निवडणूक क्विझ" };
+
+    let currentLang = 'en';
+
+    function changeLang() {
+        currentLang = document.getElementById('langSelect').value;
+        const welcome = document.getElementById('welcomeMsg');
+        welcome.innerHTML = welcomeText[currentLang] + '<div class="msg-actions"><button class="msg-action-btn" onclick="speakText(this.closest(\'.msg\'))">🔊 Listen</button></div>';
+        const chips = document.querySelectorAll('.chip');
+        const texts = chipText[currentLang];
+        chips.forEach((c, i) => { if (texts[i]) c.innerText = texts[i]; });
+        document.getElementById('userInput').placeholder = placeholderText[currentLang];
+        window.speechSynthesis.cancel();
+    }
+
+    // ===================== CHAT =====================
+    function addMessage(text, sender) {
+        const chatArea = document.getElementById('chatArea');
+        const div = document.createElement('div');
+        div.className = `msg ${sender}`;
+
+        if (sender === 'bot') {
+            div.innerText = text;
+            const actions = document.createElement('div');
+            actions.className = 'msg-actions';
+
+            const audioBtn = document.createElement('button');
+            audioBtn.className = 'msg-action-btn';
+            audioBtn.innerHTML = '🔊 Listen';
+            audioBtn.onclick = function() { speakText(div); };
+            actions.appendChild(audioBtn);
+
+            const shareBtn = document.createElement('button');
+            shareBtn.className = 'msg-action-btn';
+            shareBtn.innerHTML = '📤 WhatsApp';
+            shareBtn.onclick = function() { shareWhatsApp(text); };
+            actions.appendChild(shareBtn);
+
+            div.appendChild(actions);
+        } else {
+            div.innerText = text;
+        }
+
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
+        return div;
+    }
+
+    function showTyping() {
+        const chatArea = document.getElementById('chatArea');
+        const div = document.createElement('div');
+        div.className = 'typing'; div.id = 'typingIndicator';
+        div.innerHTML = '<span></span><span></span><span></span>';
+        chatArea.appendChild(div);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+    function removeTyping() { const el = document.getElementById('typingIndicator'); if (el) el.remove(); }
+
+    async function sendMessage(text) {
+        if (!text.trim()) return;
+        addMessage(text, 'user');
+        showTyping();
+        try {
+            const res = await fetch('/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: text, language: currentLang })
+            });
+            const data = await res.json();
+            setTimeout(() => { removeTyping(); addMessage(data.answer, 'bot'); }, 400);
+        } catch (err) {
+            removeTyping();
+            addMessage('Sorry, could not connect to the server.', 'bot');
+        }
+    }
+
+    function handleSubmit(e) {
+        e.preventDefault();
+        const input = document.getElementById('userInput');
+        sendMessage(input.value);
+        input.value = '';
+    }
+    function askChip(el) { sendMessage(el.innerText); }
+
+    // ===================== AUDIO (TTS) =====================
+    function speakText(msgEl) {
+        const synth = window.speechSynthesis;
+        synth.cancel();
+        let text = msgEl.innerText.replace(/🔊 Listen/g, '').replace(/📤 WhatsApp/g, '').trim();
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (currentLang === 'hi') utterance.lang = 'hi-IN';
+        else if (currentLang === 'bn') utterance.lang = 'bn-IN';
+        else if (currentLang === 'mr') utterance.lang = 'mr-IN';
+        else utterance.lang = 'en-IN';
+        synth.speak(utterance);
+    }
+
+    // ===================== WHATSAPP SHARE =====================
+    function shareWhatsApp(text) {
+        const shareText = `📢 From ElectraGuide India:\n\n${text}\n\n🗳️ Learn more about Indian elections!`;
+        const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+        window.open(url, '_blank');
+    }
+
+    // ===================== VOICE INPUT (STT) =====================
+    let isRecording = false;
+    let recognition = null;
+
+    function toggleMic() {
+        const micBtn = document.getElementById('micBtn');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            alert('Voice input is not supported in this browser. Try Google Chrome.');
+            return;
+        }
+
+        if (isRecording) {
+            recognition.stop();
+            return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        if (currentLang === 'hi') recognition.lang = 'hi-IN';
+        else if (currentLang === 'bn') recognition.lang = 'bn-IN';
+        else if (currentLang === 'mr') recognition.lang = 'mr-IN';
+        else recognition.lang = 'en-IN';
+
+        recognition.onstart = () => {
+            isRecording = true;
+            micBtn.classList.add('recording');
+            micBtn.innerHTML = '🛑';
+        };
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('userInput').value = transcript;
+            sendMessage(transcript);
+            document.getElementById('userInput').value = '';
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech error:', event.error);
+            isRecording = false;
+            micBtn.classList.remove('recording');
+            micBtn.innerHTML = '🎙️';
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            micBtn.classList.remove('recording');
+            micBtn.innerHTML = '🎙️';
+        };
+
+        recognition.start();
+    }
+
+    // ===================== QUIZ =====================
+    let quizQuestions = [];
+    let currentQ = 0;
+    let quizScore = 0;
+
+    async function openQuiz() {
+        document.getElementById('quizModal').classList.add('open');
+        document.getElementById('quizTitle').innerText = quizTitles[currentLang] || quizTitles['en'];
+        currentQ = 0;
+        quizScore = 0;
+
+        try {
+            const res = await fetch(`/quiz?lang=${currentLang}`);
+            const data = await res.json();
+            quizQuestions = data.questions;
+            renderQuestion();
+        } catch (e) {
+            document.getElementById('quizContent').innerHTML = '<p>Could not load quiz.</p>';
+        }
+    }
+
+    function closeQuiz() { document.getElementById('quizModal').classList.remove('open'); }
+
+    function renderQuestion() {
+        if (currentQ >= quizQuestions.length) {
+            renderScore();
+            return;
+        }
+        const q = quizQuestions[currentQ];
+        const container = document.getElementById('quizContent');
+        let html = `<div class="quiz-progress">Question ${currentQ + 1} / ${quizQuestions.length}</div>`;
+        html += `<div class="quiz-question">${q.q}</div>`;
+        q.options.forEach((opt, i) => {
+            html += `<button class="quiz-option" onclick="answerQuiz(${i}, ${q.correct})" id="qopt${i}">${opt}</button>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function answerQuiz(selected, correct) {
+        const buttons = document.querySelectorAll('.quiz-option');
+        buttons.forEach(b => b.disabled = true);
+
+        document.getElementById(`qopt${correct}`).classList.add('correct');
+        if (selected === correct) {
+            quizScore++;
+        } else {
+            document.getElementById(`qopt${selected}`).classList.add('wrong');
+        }
+
+        setTimeout(() => { currentQ++; renderQuestion(); }, 1200);
+    }
+
+    function renderScore() {
+        const total = quizQuestions.length;
+        const pct = Math.round((quizScore / total) * 100);
+        let emoji = '🎉';
+        if (pct < 40) emoji = '📚';
+        else if (pct < 70) emoji = '👍';
+
+        // Confetti on perfect score!
+        if (pct === 100) launchConfetti();
+
+        document.getElementById('quizContent').innerHTML = `
+            <div class="quiz-score">
+                <div>${emoji}</div>
+                <div class="score-num">${quizScore}/${total}</div>
+                <div style="color: var(--text-muted); margin-top: 0.5rem;">${pct}% correct</div>
+                <button class="quiz-restart" onclick="openQuiz()">Play Again</button>
+                <button class="quiz-restart" style="background: var(--accent); margin-top: 0.5rem;" onclick="closeQuiz()">Close</button>
+            </div>
+        `;
+    }
+
+    // ===================== ANIMATED STATS COUNTER =====================
+    function animateCounters() {
+        document.querySelectorAll('.stat-num').forEach(el => {
+            const target = parseInt(el.dataset.target);
+            const duration = 2000;
+            const start = performance.now();
+
+            function formatNum(n) {
+                if (n >= 10000000) return (n / 10000000).toFixed(1) + ' Cr';
+                if (n >= 100000) return (n / 100000).toFixed(1) + ' L';
+                if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+                return n.toString();
+            }
+
+            function tick(now) {
+                const elapsed = now - start;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(eased * target);
+                el.innerText = formatNum(current) + '+';
+                if (progress < 1) requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        });
+    }
+    animateCounters();
+
+    // ===================== ELECTION COUNTDOWN TIMER =====================
+    function startCountdown() {
+        const electionDate = new Date('2029-04-01T07:00:00+05:30');
+        const bar = document.getElementById('countdownBar');
+
+        function update() {
+            const now = new Date();
+            const diff = electionDate - now;
+            if (diff <= 0) { bar.innerHTML = '🗳️ <strong>Election Day is HERE!</strong> Go vote!'; return; }
+            const days = Math.floor(diff / 86400000);
+            const hrs = Math.floor((diff % 86400000) / 3600000);
+            const mins = Math.floor((diff % 3600000) / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            bar.innerHTML = `🗳️ Lok Sabha General Election in: <strong>${days}d ${hrs}h ${mins}m ${secs}s</strong>`;
+        }
+        update();
+        setInterval(update, 1000);
+    }
+    startCountdown();
+
+    // ===================== DID YOU KNOW TICKER =====================
+    const facts = [
+        "💡 Did you know? India's first general election in 1951-52 took nearly 4 months to complete!",
+        "💡 India has the largest electorate in the world — over 96 crore registered voters!",
+        "💡 The EVM was first used in India in 1982 in a Kerala by-election.",
+        "💡 NOTA was introduced in 2013 after a landmark Supreme Court judgment.",
+        "💡 India uses over 10 lakh polling stations across 28 states and 8 UTs.",
+        "💡 The Election Commission of India was established on 25th January 1950.",
+        "💡 Voter Helpline number: 1950 — call for any election-related queries!",
+        "💡 You can vote from age 18 in India. Register on the NVSP portal today!"
+    ];
+    let factIndex = 0;
+    function rotateFact() {
+        const el = document.getElementById('tickerText');
+        if (el) {
+            el.style.animation = 'none';
+            void el.offsetWidth;
+            el.innerText = facts[factIndex];
+            el.style.animation = 'ticker 18s linear infinite';
+            factIndex = (factIndex + 1) % facts.length;
+        }
+    }
+    rotateFact();
+    setInterval(rotateFact, 18000);
+
+    // ===================== CONFETTI =====================
+    function launchConfetti() {
+        const colors = ['#f97316', '#10b981', '#8b5cf6', '#3b82f6', '#ef4444', '#eab308'];
+        for (let i = 0; i < 80; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + 'vw';
+            piece.style.top = '-10px';
+            piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+            piece.style.width = (Math.random() * 8 + 6) + 'px';
+            piece.style.height = (Math.random() * 8 + 6) + 'px';
+
+            const xDrift = (Math.random() - 0.5) * 200;
+            const fallDuration = Math.random() * 2 + 2;
+            piece.style.transition = `all ${fallDuration}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+
+            document.body.appendChild(piece);
+
+            requestAnimationFrame(() => {
+                piece.style.top = '110vh';
+                piece.style.left = (parseFloat(piece.style.left) + xDrift) + 'px';
+                piece.style.opacity = '0';
+                piece.style.transform = `rotate(${Math.random() * 720}deg)`;
+            });
+
+            setTimeout(() => piece.remove(), (fallDuration + 0.5) * 1000);
+        }
+    }
+
+</script>
+
+<!-- Did You Know Ticker -->
+<div class="ticker-bar">
+    <span class="ticker-content" id="tickerText"></span>
+</div>
+
+</body>
+</html>
