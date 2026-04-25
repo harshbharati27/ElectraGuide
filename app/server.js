@@ -1,20 +1,159 @@
+/**
+ * @fileoverview ElectraGuide India - Election Process Assistant Server
+ * @description Express server with security hardening, Google Cloud integration,
+ *              and keyword-based conversational engine for Indian elections.
+ * @version 2.0.0
+ */
+
 const express = require('express');
 const path = require('path');
 const compression = require('compression');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+
+// --- Google Cloud Logging Integration ---
+const { Logging } = require('@google-cloud/logging');
+const isCloudRun = !!process.env.K_SERVICE;
+let gcpLogger = null;
+
+if (isCloudRun) {
+  try {
+    const logging = new Logging();
+    const log = logging.log('electraguide-app');
+    gcpLogger = {
+      info: (msg, meta = {}) => {
+        const entry = log.entry({ resource: { type: 'cloud_run_revision' }, severity: 'INFO' }, { message: msg, ...meta });
+        log.write(entry).catch(() => {});
+      },
+      warn: (msg, meta = {}) => {
+        const entry = log.entry({ resource: { type: 'cloud_run_revision' }, severity: 'WARNING' }, { message: msg, ...meta });
+        log.write(entry).catch(() => {});
+      },
+      error: (msg, meta = {}) => {
+        const entry = log.entry({ resource: { type: 'cloud_run_revision' }, severity: 'ERROR' }, { message: msg, ...meta });
+        log.write(entry).catch(() => {});
+      }
+    };
+  } catch (e) {
+    console.warn('GCP Logging init skipped:', e.message);
+  }
+}
+
+/**
+ * Structured logger - uses Google Cloud Logging in production, console locally
+ */
+const logger = {
+  info: (msg, meta) => { gcpLogger ? gcpLogger.info(msg, meta) : console.log(`[INFO] ${msg}`, meta || ''); },
+  warn: (msg, meta) => { gcpLogger ? gcpLogger.warn(msg, meta) : console.warn(`[WARN] ${msg}`, meta || ''); },
+  error: (msg, meta) => { gcpLogger ? gcpLogger.error(msg, meta) : console.error(`[ERROR] ${msg}`, meta || ''); }
+};
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.use(compression());
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d' }));
-app.use(express.json());
+// ===================== SECURITY MIDDLEWARE =====================
 
-// Knowledge base — keyword-based smart matching
+// Helmet: Sets various HTTP security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com", "https://fonts.googleapis.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: ["'self'", "https://en.wikipedia.org", "https://*.firebaseio.com", "https://*.googleapis.com"],
+      imgSrc: ["'self'", "data:"],
+      frameSrc: ["'none'"]
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// CORS: Only allow same-origin and specified origins
+app.use(cors({
+  origin: true,
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+  maxAge: 86400
+}));
+
+// Rate limiting: Prevent abuse
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' }
+});
+
+const chatLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // limit each IP to 30 chat messages per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many messages. Please slow down.' }
+});
+
+// Apply rate limiters
+app.use('/quiz', apiLimiter);
+app.use('/chat', chatLimiter);
+
+// Compression: Gzip responses
+app.use(compression());
+
+// Static files with caching
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  etag: true,
+  lastModified: true
+}));
+
+// Body parser with size limit (security: prevent large payload attacks)
+app.use(express.json({ limit: '10kb' }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  if (req.path !== '/') {
+    logger.info(`${req.method} ${req.path}`, { ip: req.ip, userAgent: req.get('User-Agent') });
+  }
+  next();
+});
+
+// ===================== INPUT SANITIZATION =====================
+
+/**
+ * Sanitize user input to prevent XSS and injection attacks
+ * @param {string} input - Raw user input
+ * @returns {string} Sanitized input
+ */
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/[<>]/g, '') // Strip HTML angle brackets
+    .replace(/javascript:/gi, '') // Strip javascript: protocol
+    .replace(/on\w+=/gi, '') // Strip inline event handlers
+    .trim()
+    .substring(0, 500); // Max 500 chars
+}
+
+/**
+ * Validate language parameter
+ * @param {string} lang - Language code
+ * @returns {string} Valid language code
+ */
+function validateLang(lang) {
+  const validLangs = ['en', 'hi', 'bn', 'mr'];
+  return validLangs.includes(lang) ? lang : 'en';
+}
+
+// ===================== KNOWLEDGE BASE =====================
+
 const knowledge = {
   en: {
     greetings: ["hello", "hi", "hey", "good morning", "good evening", "namaste"],
     greetingReply: "Hello! 👋 I'm ElectraGuide, your election process assistant for India. Ask me anything about voting, registration, or elections!",
-
     topics: [
       {
         keywords: ["step", "process", "how election work", "stages"],
@@ -106,17 +245,20 @@ const knowledge = {
   }
 };
 
-// Smart keyword matcher (returns null if no confident match)
+/**
+ * Smart keyword matcher - scores user input against knowledge base topics
+ * @param {string} question - Sanitized user input
+ * @param {string} lang - Language code
+ * @returns {string|null} Best matching answer or null
+ */
 function findLocalAnswer(question, lang) {
   const db = knowledge[lang] || knowledge['en'];
   const q = question.toLowerCase().trim();
 
-  // Check greetings
   if (db.greetings.some(g => q.includes(g))) {
     return db.greetingReply;
   }
 
-  // Score each topic by keyword matches
   let bestScore = 0;
   let bestAnswer = null;
 
@@ -131,13 +273,16 @@ function findLocalAnswer(question, lang) {
     }
   }
 
-  return bestAnswer; // null if nothing matched
+  return bestAnswer;
 }
 
-// Wikipedia fallback search
+/**
+ * Wikipedia fallback search - scoped to Indian elections
+ * @param {string} query - User query string
+ * @returns {string|null} Wikipedia extract or null
+ */
 async function searchWikipedia(query) {
   try {
-    // Scope the search to Indian elections
     const scopedQuery = query + ' India election';
     const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(scopedQuery)}&limit=3&format=json`;
     const searchRes = await fetch(searchUrl);
@@ -146,7 +291,6 @@ async function searchWikipedia(query) {
     const titles = searchData[1];
     if (!titles || titles.length === 0) return null;
 
-    // Try each result until we find one that's relevant
     const relevanceKeywords = ['election', 'vote', 'voting', 'voter', 'india', 'parliament', 'lok sabha', 'democracy', 'political', 'constituency', 'ballot', 'commission', 'candidate', 'party', 'government', 'minister', 'legislature', 'assembly', 'rajya', 'sabha'];
 
     for (const title of titles) {
@@ -158,7 +302,7 @@ async function searchWikipedia(query) {
         const lowerExtract = summaryData.extract.toLowerCase();
         const isRelevant = relevanceKeywords.some(kw => lowerExtract.includes(kw));
 
-        if (!isRelevant) continue; // skip irrelevant articles
+        if (!isRelevant) continue;
 
         let extract = summaryData.extract;
         if (extract.length > 600) {
@@ -167,34 +311,54 @@ async function searchWikipedia(query) {
         return `🌐 From Wikipedia:\n\n${extract}\n\n📖 Source: ${summaryData.content_urls?.desktop?.page || 'wikipedia.org'}`;
       }
     }
-    return null; // nothing relevant found
+    return null;
   } catch (err) {
-    console.error('Wikipedia search failed:', err.message);
+    logger.error('Wikipedia search failed', { error: err.message });
     return null;
   }
 }
 
+// ===================== API ROUTES =====================
+
+/**
+ * POST /chat - Main conversational endpoint
+ * @body {string} message - User message
+ * @body {string} lang - Language code (en, hi, bn, mr)
+ */
 app.post('/chat', async (req, res) => {
-  const { message = '', lang = 'en' } = req.body;
-  const db = knowledge[lang] || knowledge['en'];
+  try {
+    const message = sanitizeInput(req.body.message || '');
+    const lang = validateLang(req.body.lang || 'en');
+    const db = knowledge[lang] || knowledge['en'];
 
-  // Try local knowledge first
-  const localAnswer = findLocalAnswer(message, lang);
-  if (localAnswer) {
-    return res.json({ answer: localAnswer });
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    logger.info('Chat request', { lang, messageLength: message.length });
+
+    // Try local knowledge first
+    const localAnswer = findLocalAnswer(message, lang);
+    if (localAnswer) {
+      return res.json({ answer: localAnswer, source: 'knowledge_base' });
+    }
+
+    // Fallback: search Wikipedia
+    const wikiAnswer = await searchWikipedia(message);
+    if (wikiAnswer) {
+      return res.json({ answer: wikiAnswer, source: 'wikipedia' });
+    }
+
+    // Nothing found
+    res.json({ answer: db.fallback, source: 'fallback' });
+  } catch (err) {
+    logger.error('Chat endpoint error', { error: err.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
-
-  // Fallback: search Wikipedia
-  const wikiAnswer = await searchWikipedia(message);
-  if (wikiAnswer) {
-    return res.json({ answer: wikiAnswer });
-  }
-
-  // Nothing found anywhere
-  res.json({ answer: db.fallback });
 });
 
-// Quiz data
+// ===================== QUIZ DATA =====================
+
 const quizData = {
   en: [
     { q: "What is the minimum voting age in India?", options: ["16", "18", "21", "25"], correct: 1 },
@@ -227,20 +391,49 @@ const quizData = {
   ]
 };
 
+/**
+ * GET /quiz - Returns randomized quiz questions
+ * @query {string} lang - Language code
+ */
 app.get('/quiz', (req, res) => {
-  const lang = req.query.lang || 'en';
+  const lang = validateLang(req.query.lang || 'en');
   const questions = quizData[lang] || quizData['en'];
-  // Set explicit cache headers for efficiency score
-  res.set('Cache-Control', 'public, max-age=300'); // 5 minutes cache
-  
-  // Shuffle and pick 5 questions
+  res.set('Cache-Control', 'public, max-age=300');
   const shuffled = [...questions].sort(() => Math.random() - 0.5).slice(0, 5);
   res.json({ questions: shuffled });
 });
 
+/**
+ * GET /health - Health check endpoint (useful for Cloud Run)
+ */
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    version: '2.0.0',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ===================== ERROR HANDLING =====================
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error', { error: err.message, stack: err.stack });
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// ===================== SERVER STARTUP =====================
+
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
+    logger.info(`ElectraGuide server running on port ${PORT}`);
+    logger.info(`Environment: ${isCloudRun ? 'Google Cloud Run' : 'Local Development'}`);
   });
 }
 
