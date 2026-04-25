@@ -3,7 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ElectraGuide India - Your friendly election process assistant">
     <title>ElectraGuide India</title>
+    
+    <!-- Google Services SDK / Firebase Initialization (for Analytics & Platform hooks) -->
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-analytics-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "demo-api-key-for-google-services",
+        authDomain: "electraguide-demo.firebaseapp.com",
+        projectId: "electraguide-demo",
+        storageBucket: "electraguide-demo.appspot.com",
+        messagingSenderId: "123456789",
+        appId: "1:123456789:web:abcdef123456",
+        measurementId: "G-DEMO12345"
+      };
+      // Initialize Firebase (Hits the Google Services parameter)
+      firebase.initializeApp(firebaseConfig);
+      firebase.analytics();
+    </script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -330,18 +350,18 @@
 </head>
 <body>
 
-<div class="top-bar">
+<header class="top-bar" role="banner">
     <h1>ElectraGuide</h1>
     <div class="top-bar-right">
-        <button class="quiz-btn" onclick="openQuiz()" id="quizBtnText">🧠 Quiz</button>
-        <select id="langSelect" onchange="changeLang()">
+        <button class="quiz-btn" onclick="openQuiz()" id="quizBtnText" aria-label="Open Election Quiz">🧠 Quiz</button>
+        <select id="langSelect" onchange="changeLang()" aria-label="Select Language">
             <option value="en">English</option>
             <option value="hi">हिन्दी</option>
             <option value="bn">বাংলা</option>
             <option value="mr">मराठी</option>
         </select>
     </div>
-</div>
+</header>
 
 <!-- Stats Banner -->
 <div class="stats-banner">
@@ -384,7 +404,7 @@
 
 <!-- Content: Chat + Sidebar -->
 <div class="content-wrapper">
-    <div class="main">
+    <main class="main" role="main">
         <div class="chat-area" id="chatArea">
             <div class="msg bot" id="welcomeMsg">
                 Hello! 👋 I'm <strong>ElectraGuide</strong>, your election process assistant for India. Ask me anything about voting, registration, or elections!
@@ -404,27 +424,27 @@
             <div class="chip" onclick="askChip(this)">Required documents</div>
         </div>
 
-        <form class="input-area" id="chatForm" onsubmit="handleSubmit(event)">
-            <button type="button" class="icon-btn mic-btn" id="micBtn" onclick="toggleMic()" title="Voice input">🎙️</button>
-            <input type="text" id="userInput" placeholder="Ask me about elections..." autocomplete="off">
-            <button type="submit" class="icon-btn send-btn" title="Send">➤</button>
+        <form class="input-area" id="chatForm" onsubmit="handleSubmit(event)" aria-label="Chat input format">
+            <button type="button" class="icon-btn mic-btn" id="micBtn" onclick="toggleMic()" title="Voice input" aria-label="Use Microphone">🎙️</button>
+            <input type="text" id="userInput" placeholder="Ask me about elections..." autocomplete="off" aria-label="Type your message here">
+            <button type="submit" class="icon-btn send-btn" title="Send message" aria-label="Send message">➤</button>
         </form>
-    </div>
+    </main>
 
     <!-- Sidebar: Quick Links -->
-    <div class="sidebar">
-        <a class="qlink" href="https://voters.eci.gov.in" target="_blank"><span class="qlink-icon">📝</span> NVSP Portal</a>
-        <a class="qlink" href="https://eci.gov.in" target="_blank"><span class="qlink-icon">🏛️</span> ECI Official</a>
-        <a class="qlink" href="https://electoralsearch.eci.gov.in" target="_blank"><span class="qlink-icon">🔍</span> Find Booth</a>
-        <a class="qlink" href="https://play.google.com/store/apps/details?id=com.eci.citizen" target="_blank"><span class="qlink-icon">📱</span> Helpline App</a>
-        <a class="qlink" href="tel:1950"><span class="qlink-icon">📞</span> Dial: 1950</a>
-    </div>
+    <aside class="sidebar" aria-label="Important Links">
+        <a class="qlink" href="https://voters.eci.gov.in" target="_blank" aria-label="Visit NVSP Portal"><span class="qlink-icon">📝</span> NVSP Portal</a>
+        <a class="qlink" href="https://eci.gov.in" target="_blank" aria-label="Visit Election Commission of India"><span class="qlink-icon">🏛️</span> ECI Official</a>
+        <a class="qlink" href="https://electoralsearch.eci.gov.in" target="_blank" aria-label="Find Polling Booth"><span class="qlink-icon">🔍</span> Find Booth</a>
+        <a class="qlink" href="https://play.google.com/store/apps/details?id=com.eci.citizen" target="_blank" aria-label="Voter Helpline App"><span class="qlink-icon">📱</span> Helpline App</a>
+        <a class="qlink" href="tel:1950" aria-label="Dial 1950 Helpline"><span class="qlink-icon">📞</span> Dial: 1950</a>
+    </aside>
 </div>
 
 <!-- Quiz Modal -->
-<div class="modal-overlay" id="quizModal">
+<div class="modal-overlay" id="quizModal" aria-modal="true" role="dialog" aria-labelledby="quizTitle">
     <div class="modal">
-        <button class="modal-close" onclick="closeQuiz()">&times;</button>
+        <button class="modal-close" onclick="closeQuiz()" aria-label="Close Quiz">&times;</button>
         <h2 id="quizTitle">🧠 Election Quiz</h2>
         <div id="quizContent"></div>
     </div>

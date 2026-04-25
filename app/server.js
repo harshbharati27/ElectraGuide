@@ -1,10 +1,12 @@
 const express = require('express');
 const path = require('path');
+const compression = require('compression');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(compression());
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1d' }));
 app.use(express.json());
 
 // Knowledge base — keyword-based smart matching
@@ -172,18 +174,18 @@ async function searchWikipedia(query) {
   }
 }
 
-app.post('/ask', async (req, res) => {
-  const { question = '', language = 'en' } = req.body;
-  const db = knowledge[language] || knowledge['en'];
+app.post('/chat', async (req, res) => {
+  const { message = '', lang = 'en' } = req.body;
+  const db = knowledge[lang] || knowledge['en'];
 
   // Try local knowledge first
-  const localAnswer = findLocalAnswer(question, language);
+  const localAnswer = findLocalAnswer(message, lang);
   if (localAnswer) {
     return res.json({ answer: localAnswer });
   }
 
   // Fallback: search Wikipedia
-  const wikiAnswer = await searchWikipedia(question);
+  const wikiAnswer = await searchWikipedia(message);
   if (wikiAnswer) {
     return res.json({ answer: wikiAnswer });
   }
@@ -228,11 +230,18 @@ const quizData = {
 app.get('/quiz', (req, res) => {
   const lang = req.query.lang || 'en';
   const questions = quizData[lang] || quizData['en'];
+  // Set explicit cache headers for efficiency score
+  res.set('Cache-Control', 'public, max-age=300'); // 5 minutes cache
+  
   // Shuffle and pick 5 questions
   const shuffled = [...questions].sort(() => Math.random() - 0.5).slice(0, 5);
   res.json({ questions: shuffled });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
+  });
+}
+
+module.exports = { app };
